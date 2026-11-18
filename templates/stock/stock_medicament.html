@@ -1,0 +1,64 @@
+{% extends "base.html" %}
+{% load roles %}
+{% block title %}Stock — {{ m }}{% endblock %}
+
+{% block content %}
+<a href="{% url 'stock_liste' %}" class="btn btn-link px-0 mb-2"><i class="bi bi-arrow-left"></i> Retour à l'état du stock</a>
+<div class="d-flex flex-wrap justify-content-between align-items-start gap-2 mb-3">
+  <div>
+    <h1 class="h3 mb-1">{{ m }}</h1>
+    <div class="text-muted">{{ m.categorie }} — seuil d'alerte : {{ m.seuil_alerte }} — stock vendable : <strong>{{ m.stock_vendable }}</strong> / total : {{ m.stock_total }}</div>
+  </div>
+  <a href="{% url 'medicament_detail' m.pk %}" class="btn btn-outline-secondary"><i class="bi bi-capsule"></i> Fiche du médicament</a>
+</div>
+
+<div class="card carte-stat mb-3">
+  <div class="card-header bg-transparent"><h2 class="h6 mb-0">Lots (ordre FEFO : le premier qui périme sort en premier)</h2></div>
+  <div class="table-responsive">
+    <table class="table align-middle mb-0">
+      <thead class="table-light"><tr><th>N° de lot</th><th>Péremption</th><th class="nombre">Reçu</th><th class="nombre">Disponible</th><th>État</th><th class="text-end">Actions</th></tr></thead>
+      <tbody>
+        {% for lot in lots %}
+        <tr class="{% if lot.est_perime %}table-danger{% elif lot.bloque %}table-secondary{% elif lot.est_proche_peremption %}table-warning{% endif %}">
+          <td class="fw-semibold">{{ lot.numero_lot }}</td>
+          <td>{{ lot.date_peremption|date:"d/m/Y" }} <span class="small text-muted">({{ lot.jours_restants }} j)</span></td>
+          <td class="nombre">{{ lot.quantite_recue }}</td>
+          <td class="nombre fw-semibold">{{ lot.quantite }}</td>
+          <td>
+            {% if lot.est_perime %}<span class="badge bg-danger">Périmé</span>
+            {% elif lot.bloque %}<span class="badge bg-secondary" title="{{ lot.motif_blocage }}">Bloqué</span> <span class="small text-muted">{{ lot.motif_blocage }}</span>
+            {% elif lot.quantite == 0 %}<span class="badge bg-light text-dark border">Épuisé</span>
+            {% elif lot.est_proche_peremption %}<span class="badge bg-warning text-dark">Proche péremption</span>
+            {% else %}<span class="badge bg-success">Vendable</span>{% endif %}
+          </td>
+          <td class="text-end text-nowrap">
+            {% if user|a_role:"Pharmacien responsable,Gestionnaire de stock" %}
+              <a href="{% url 'correction_creer' lot.pk %}" class="btn btn-sm btn-outline-secondary" title="Corriger le stock"><i class="bi bi-pencil-square"></i> Corriger</a>
+            {% endif %}
+            {% if user|a_role:"Pharmacien responsable" %}
+              <form method="post" action="{% url 'lot_basculer_blocage' lot.pk %}" class="d-inline-flex gap-1"
+                    onsubmit="return confirm('{% if lot.bloque %}Débloquer{% else %}Bloquer{% endif %} ce lot ?');">
+                {% csrf_token %}
+                {% if not lot.bloque %}<input type="text" name="motif" class="form-control form-control-sm" placeholder="Motif du blocage" required aria-label="Motif du blocage">{% endif %}
+                <button class="btn btn-sm {% if lot.bloque %}btn-outline-success{% else %}btn-outline-danger{% endif %}">
+                  <i class="bi {% if lot.bloque %}bi-unlock{% else %}bi-lock{% endif %}"></i> {% if lot.bloque %}Débloquer{% else %}Bloquer{% endif %}
+                </button>
+              </form>
+            {% endif %}
+          </td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="6" class="text-center text-muted py-4">Aucun lot : ce médicament n'a encore jamais été réceptionné.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<div class="card carte-stat">
+  <div class="card-header bg-transparent d-flex justify-content-between"><h2 class="h6 mb-0">Derniers mouvements</h2>
+    {% if user|a_role:"Pharmacien responsable,Gestionnaire de stock,Responsable de gestion" %}<a href="{% url 'mouvement_liste' %}?q={{ m.nom|urlencode }}" class="small">Historique complet</a>{% endif %}
+  </div>
+  {% include "stock/_mouvements.html" with mouvements=mouvements %}
+</div>
+{% endblock %}

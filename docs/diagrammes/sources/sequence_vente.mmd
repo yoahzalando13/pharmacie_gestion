@@ -1,0 +1,40 @@
+---
+title: Diagramme de séquence — Vente en caisse
+---
+sequenceDiagram
+  autonumber
+  actor C as Caissier
+  participant V as Vue caisse (ventes/views.py)
+  participant S as Service valider_vente()
+  participant ST as Service enregistrer_mouvement()
+  participant BD as Base de données
+  C->>V: Recherche ou scan du code-barres
+  V->>BD: Médicaments actifs + stock vendable
+  V-->>C: Article ajouté au panier (session)
+  C->>V: Ajuste quantités / lot, choisit le mode de paiement
+  C->>V: Confirmer la vente (jeton unique)
+  V->>S: valider_vente(panier, utilisateur, jeton, mode)
+  activate S
+  Note over S,BD: transaction.atomic : tout ou rien
+  S->>BD: Jeton déjà utilisé ?
+  alt jeton déjà enregistré
+    S-->>V: VenteDejaEnregistree (double clic bloqué)
+  else nouvelle vente
+    S->>BD: INSERT Vente
+    loop pour chaque article
+      S->>BD: Lots vendables (non périmés, non bloqués), ordre FEFO
+      S->>ST: SORTIE_VENTE (lot, quantité)
+      ST->>BD: UPDATE lot SET quantite = quantite - n WHERE quantite >= n
+      alt stock insuffisant
+        ST-->>S: ErreurStock → annulation de toute la transaction
+      else stock suffisant
+        ST->>BD: INSERT MouvementStock (avant / après)
+        S->>BD: INSERT LigneVente (prix figé)
+      end
+    end
+    S->>BD: INSERT Paiement (confirmé ou en attente)
+    S->>BD: INSERT JournalAudit « VENTE »
+    S-->>V: vente
+  end
+  deactivate S
+  V-->>C: Fiche de la vente + reçu PDF

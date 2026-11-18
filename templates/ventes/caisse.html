@@ -1,0 +1,130 @@
+{% extends "base.html" %}
+{% block title %}Caisse{% endblock %}
+
+{% block content %}
+<div class="row g-3">
+  {# ---------- Recherche ---------- #}
+  <div class="col-lg-5">
+    <div class="card carte-stat mb-3">
+      <div class="card-body">
+        <h1 class="h4"><i class="bi bi-upc-scan"></i> Caisse</h1>
+        <form method="get" class="input-group">
+          <input type="search" name="q" value="{{ q }}" class="form-control form-control-lg" placeholder="Nom du médicament ou code-barres" autofocus aria-label="Rechercher un médicament">
+          <button class="btn btn-pharma" title="Rechercher"><i class="bi bi-search"></i></button>
+        </form>
+        <div class="form-text">Un code-barres scanné ajoute directement le médicament au panier.</div>
+      </div>
+    </div>
+
+    {% if resultats is not None %}
+    <div class="card carte-stat">
+      <div class="card-header bg-transparent"><h2 class="h6 mb-0">Résultats pour « {{ q }} »</h2></div>
+      <ul class="list-group list-group-flush">
+        {% for m in resultats %}
+          <li class="list-group-item">
+            <div class="d-flex justify-content-between align-items-center gap-2">
+              <div>
+                <div class="fw-semibold">{{ m }}</div>
+                <div class="small text-muted">{{ m.prix_vente|floatformat:"0g" }} Ar —
+                  {% if m.stock_vendable_calc %}{{ m.stock_vendable_calc }} vendable{{ m.stock_vendable_calc|pluralize }}{% else %}<span class="text-danger">rupture</span>{% endif %}
+                </div>
+              </div>
+              {% if m.stock_vendable_calc %}
+              <form method="post" class="d-flex gap-1">
+                {% csrf_token %}
+                <input type="hidden" name="action" value="ajouter">
+                <input type="hidden" name="medicament_id" value="{{ m.pk }}">
+                <input type="number" name="quantite" value="1" min="1" max="{{ m.stock_vendable_calc }}" class="form-control form-control-sm" style="width: 5rem" aria-label="Quantité">
+                <button class="btn btn-sm btn-pharma" title="Ajouter au panier"><i class="bi bi-cart-plus"></i></button>
+              </form>
+              {% endif %}
+            </div>
+          </li>
+        {% empty %}
+          <li class="list-group-item text-muted">Aucun médicament actif ne correspond.</li>
+        {% endfor %}
+      </ul>
+    </div>
+    {% endif %}
+  </div>
+
+  {# ---------- Panier ---------- #}
+  <div class="col-lg-7">
+    <div class="card carte-stat">
+      <div class="card-header bg-transparent d-flex justify-content-between align-items-center">
+        <h2 class="h6 mb-0"><i class="bi bi-cart"></i> Panier</h2>
+        {% if lignes %}
+        <form method="post">{% csrf_token %}<input type="hidden" name="action" value="vider">
+          <button class="btn btn-sm btn-outline-danger" onclick="return confirm('Vider le panier ?');"><i class="bi bi-trash"></i> Vider</button>
+        </form>
+        {% endif %}
+      </div>
+      <div class="table-responsive">
+        <table class="table align-middle mb-0">
+          <thead class="table-light"><tr><th>Médicament</th><th>Lot</th><th style="width: 6.5rem">Qté</th><th class="nombre">P.U.</th><th class="nombre">Sous-total</th><th></th></tr></thead>
+          <tbody>
+            {% for l in lignes %}
+            <tr class="{% if l.insuffisant %}table-danger{% endif %}">
+              <td>
+                {{ l.medicament }}
+                {% if l.insuffisant %}<div class="small text-danger">Stock insuffisant : {{ l.disponible }} disponible{{ l.disponible|pluralize }}</div>{% endif %}
+              </td>
+              <td colspan="2">
+                <form method="post" class="d-flex gap-1">
+                  {% csrf_token %}
+                  <input type="hidden" name="action" value="modifier">
+                  <input type="hidden" name="index" value="{{ l.index }}">
+                  <select name="lot_id" class="form-select form-select-sm" aria-label="Lot" onchange="this.form.submit()">
+                    <option value="">Automatique (FEFO)</option>
+                    {% for lot in l.lots %}
+                      <option value="{{ lot.pk }}" {% if lot.pk == l.lot_id %}selected{% endif %}>{{ lot.numero_lot }} — exp. {{ lot.date_peremption|date:"m/Y" }} ({{ lot.quantite }})</option>
+                    {% endfor %}
+                  </select>
+                  <input type="number" name="quantite" value="{{ l.quantite }}" min="1" class="form-control form-control-sm" style="width: 5rem" aria-label="Quantité" onchange="this.form.submit()">
+                </form>
+              </td>
+              <td class="nombre">{{ l.medicament.prix_vente|floatformat:"0g" }}</td>
+              <td class="nombre fw-semibold">{{ l.sous_total|floatformat:"0g" }} Ar</td>
+              <td class="text-end">
+                <form method="post">{% csrf_token %}<input type="hidden" name="action" value="retirer"><input type="hidden" name="index" value="{{ l.index }}">
+                  <button class="btn btn-sm btn-outline-danger" title="Retirer"><i class="bi bi-x-lg"></i></button>
+                </form>
+              </td>
+            </tr>
+            {% empty %}
+            <tr><td colspan="6" class="text-center text-muted py-5"><i class="bi bi-cart fs-2 d-block mb-2"></i>Le panier est vide. Recherchez ou scannez un médicament.</td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+
+      {% if lignes %}
+      <div class="card-body border-top">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+          <span class="text-muted">Total à payer</span>
+          <span class="caisse-total">{{ total|floatformat:"0g" }} Ar</span>
+        </div>
+
+        <form method="post" class="row g-2" id="form-validation">
+          {% csrf_token %}
+          <input type="hidden" name="action" value="valider">
+          <input type="hidden" name="jeton" value="{{ jeton }}">
+          {% if form.non_field_errors %}<div class="col-12"><div class="alert alert-danger mb-0">{{ form.non_field_errors }}</div></div>{% endif %}
+          <div class="col-md-6"><label class="form-label" for="{{ form.client.id_for_label }}">Client</label>{{ form.client }}</div>
+          <div class="col-md-6"><label class="form-label" for="{{ form.mode.id_for_label }}">Mode de paiement</label>{{ form.mode }}</div>
+          <div class="col-md-6"><label class="form-label" for="{{ form.montant_recu.id_for_label }}">Montant reçu (espèces)</label>{{ form.montant_recu }}
+            <div class="form-text">Laissé vide = montant exact.</div></div>
+          <div class="col-md-6"><label class="form-label" for="{{ form.reference.id_for_label }}">Référence de transaction</label>{{ form.reference }}
+            <div class="form-text">{{ form.reference.help_text }}</div></div>
+          <div class="col-12 d-grid mt-2">
+            <button class="btn btn-lg btn-success" onclick="if (!confirm('Confirmer la vente de {{ total|floatformat:'0g' }} Ar ?')) return false; this.disabled=true; this.form.submit();">
+              <i class="bi bi-check2-circle"></i> Confirmer la vente
+            </button>
+          </div>
+        </form>
+      </div>
+      {% endif %}
+    </div>
+  </div>
+</div>
+{% endblock %}

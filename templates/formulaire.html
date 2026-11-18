@@ -1,0 +1,46 @@
+{% extends "base.html" %}
+{% block title %}{{ titre }}{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+  <div class="col-lg-9">
+    <div class="card carte-stat">
+      <div class="card-body p-4">
+        <h1 class="h4 mb-4">{{ titre }}</h1>
+
+        {% if aide %}
+          <div class="alert alert-info"><i class="bi bi-info-circle"></i> {{ aide }}</div>
+        {% endif %}
+
+        <form method="post" enctype="multipart/form-data">
+          {% csrf_token %}
+
+          {% if form.non_field_errors %}
+            <div class="alert alert-danger">{{ form.non_field_errors }}</div>
+          {% endif %}
+
+          <div class="row g-3">
+            {% for field in form %}
+              <div class="{% if field.widget_type == 'textarea' or field.widget_type == 'clearablefile' or field.widget_type == 'checkboxselectmultiple' %}col-12{% else %}col-md-6{% endif %}">
+                <label class="form-label" for="{{ field.id_for_label }}">
+                  {{ field.label }}{% if field.field.required %} <span class="text-danger">*</span>{% endif %}
+                </label>
+                {{ field }}
+                {% if field.help_text %}<div class="form-text">{{ field.help_text|safe }}</div>{% endif %}
+                {% for erreur in field.errors %}
+                  <div class="invalid-feedback d-block">{{ erreur }}</div>
+                {% endfor %}
+              </div>
+            {% endfor %}
+          </div>
+
+          <div class="mt-4 d-flex gap-2">
+            <button type="submit" class="btn btn-pharma"><i class="bi bi-check-lg"></i> Enregistrer</button>
+            <a href="{{ url_retour }}" class="btn btn-outline-secondary">Annuler</a>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

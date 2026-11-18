@@ -1,0 +1,11 @@
+{% extends "base.html" %}
+{% block title %}Accès interdit{% endblock %}
+
+{% block content %}
+<div class="text-center py-5">
+  <span class="icone-hero danger"><i class="bi bi-shield-lock"></i></span>
+  <h1 class="h2 mt-4">Accès <span class="texte-degrade">interdit</span></h1>
+  <p class="text-muted">Vous n'avez pas la permission d'accéder à cette page.</p>
+  <a href="{% url 'tableau_de_bord' %}" class="btn btn-pharma">Retour au tableau de bord</a>
+</div>
+{% endblock %}

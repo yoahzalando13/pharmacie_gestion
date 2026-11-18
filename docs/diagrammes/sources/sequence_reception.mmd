@@ -1,0 +1,33 @@
+---
+title: Diagramme de séquence — Commande et réception
+---
+sequenceDiagram
+  autonumber
+  actor G as Gestionnaire de stock
+  participant VA as Vues achats
+  participant SA as Services achats
+  participant ST as enregistrer_mouvement()
+  participant BD as Base de données
+  G->>VA: Nouvelle commande (fournisseur)
+  VA->>BD: INSERT CommandeAchat (BROUILLON)
+  G->>VA: Ajoute des lignes (médicament, quantité, prix)
+  G->>VA: Valider la commande
+  VA->>SA: valider_commande()
+  SA->>BD: statut = COMMANDEE (le stock ne bouge pas, RG04)
+  Note over G,BD: … livraison du fournisseur …
+  G->>VA: Réceptionner : quantités, n° de lot, date de péremption
+  VA->>SA: receptionner(commande, lignes, jeton)
+  activate SA
+  Note over SA,BD: transaction.atomic
+  SA->>BD: Jeton déjà utilisé ? (RG05)
+  loop pour chaque ligne reçue
+    SA->>BD: Contrôle quantité ≤ reste à recevoir
+    SA->>BD: Lot existant ou nouveau (même date de péremption)
+    SA->>ST: ENTREE_ACHAT (lot, quantité)
+    ST->>BD: UPDATE lot + INSERT MouvementStock
+    SA->>BD: INSERT LigneReception, mise à jour quantite_recue
+  end
+  SA->>BD: statut = PARTIELLE ou RECUE
+  SA->>BD: INSERT JournalAudit « RECEPTION »
+  deactivate SA
+  VA-->>G: Bon de réception (PDF)

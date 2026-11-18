@@ -1,0 +1,277 @@
+{% extends "base.html" %}
+{% load roles %}
+
+{% block title %}Tableau de bord{% endblock %}
+
+{% block content %}
+
+{# ---------- En-tête ---------- #}
+<div class="d-flex flex-wrap justify-content-between align-items-end gap-3 mb-4">
+  <div>
+    <h1 class="h2 mb-1">Bonjour <span class="texte-degrade">{{ user.first_name|default:user.username }}</span></h1>
+    <p class="text-muted mb-0">
+      <i class="bi bi-calendar3"></i> {% now "l j F Y" %}
+      {% if roles_utilisateur %} — {{ roles_utilisateur|join:", " }}{% elif user.is_superuser %} — Super-administrateur{% endif %}
+    </p>
+  </div>
+  <div class="d-flex flex-wrap gap-2">
+    {% if user|a_role:"Pharmacien responsable,Caissier" %}
+      <a href="{% url 'caisse' %}" class="btn btn-pharma"><i class="bi bi-upc-scan"></i> Ouvrir la caisse</a>
+    {% endif %}
+    {% if user|a_role:"Pharmacien responsable,Gestionnaire de stock" %}
+      <a href="{% url 'commande_creer' %}" class="btn btn-outline-secondary"><i class="bi bi-truck"></i> Nouvelle commande</a>
+    {% endif %}
+    {% if user|a_role:"Pharmacien responsable" %}
+      <a href="{% url 'medicament_creer' %}" class="btn btn-outline-secondary"><i class="bi bi-plus-lg"></i> Nouveau médicament</a>
+    {% endif %}
+  </div>
+</div>
+
+{# ---------- Les 4 indicateurs du cahier des charges (§4.10) ---------- #}
+<div class="row g-3 mb-4">
+  {% if voit_stock %}
+  <div class="col-12 col-sm-6 col-xl-3">
+    <a href="{% url 'stock_liste' %}" class="card tdb-carte h-100 text-decoration-none">
+      <div class="card-body d-flex align-items-center">
+        <span class="tdb-icone bg-success-subtle text-success me-3"><i class="bi bi-capsule"></i></span>
+        <div>
+          <div class="text-muted small">Médicaments actifs</div>
+          <div class="fs-3 fw-bold text-body">{{ kpi.medicaments_actifs }}</div>
+        </div>
+      </div>
+    </a>
+  </div>
+  {% endif %}
+
+  {% if voit_ventes %}
+  <div class="col-12 col-sm-6 col-xl-3">
+    <a href="{% url 'vente_liste' %}" class="card tdb-carte h-100 text-decoration-none">
+      <div class="card-body d-flex align-items-center">
+        <span class="tdb-icone bg-primary-subtle text-primary me-3"><i class="bi bi-cash-stack"></i></span>
+        <div>
+          <div class="text-muted small">Ventes du jour</div>
+          <div class="fs-3 fw-bold text-body text-nowrap">{{ kpi.ventes_jour_montant|floatformat:"0g" }} Ar</div>
+          <div class="small text-muted">{{ kpi.ventes_jour_nombre }} vente{{ kpi.ventes_jour_nombre|pluralize }}</div>
+        </div>
+      </div>
+    </a>
+  </div>
+  {% endif %}
+
+  {% if voit_stock %}
+  <div class="col-12 col-sm-6 col-xl-3">
+    <a href="{% url 'stock_liste' %}?etat=faible" class="card tdb-carte h-100 text-decoration-none">
+      <div class="card-body d-flex align-items-center">
+        <span class="tdb-icone {% if kpi.stocks_faibles %}bg-warning-subtle text-warning-emphasis{% else %}bg-secondary-subtle text-secondary{% endif %} me-3"><i class="bi bi-exclamation-triangle"></i></span>
+        <div>
+          <div class="text-muted small">Stocks faibles</div>
+          <div class="fs-3 fw-bold text-body">{{ kpi.stocks_faibles }}</div>
+          <div class="small {% if kpi.ruptures %}text-danger{% else %}text-muted{% endif %}">dont {{ kpi.ruptures }} en rupture</div>
+        </div>
+      </div>
+    </a>
+  </div>
+
+  <div class="col-12 col-sm-6 col-xl-3">
+    <a href="{% if user|a_role:'Pharmacien responsable,Gestionnaire de stock,Responsable de gestion' %}{% url 'stock_alertes' %}{% else %}{% url 'stock_liste' %}{% endif %}" class="card tdb-carte h-100 text-decoration-none">
+      <div class="card-body d-flex align-items-center">
+        <span class="tdb-icone {% if kpi.peremptions_proches or kpi.perimes %}bg-danger-subtle text-danger{% else %}bg-secondary-subtle text-secondary{% endif %} me-3"><i class="bi bi-hourglass-split"></i></span>
+        <div>
+          <div class="text-muted small">Péremptions proches</div>
+          <div class="fs-3 fw-bold text-body">{{ kpi.peremptions_proches }}</div>
+          <div class="small {% if kpi.perimes %}text-danger fw-semibold{% else %}text-muted{% endif %}">{{ kpi.perimes }} lot{{ kpi.perimes|pluralize }} périmé{{ kpi.perimes|pluralize }} en stock</div>
+        </div>
+      </div>
+    </a>
+  </div>
+  {% endif %}
+</div>
+
+{# ---------- Indicateurs de la période ---------- #}
+{% if stats %}
+<div class="card carte-stat mb-4">
+  <div class="card-header bg-transparent d-flex flex-wrap justify-content-between align-items-center gap-2">
+    <h2 class="h6 mb-0"><i class="bi bi-graph-up"></i> Activité du {{ du|date:"d/m/Y" }} au {{ au|date:"d/m/Y" }}</h2>
+    <form method="get" class="d-flex flex-wrap gap-2 align-items-center">
+      <div class="btn-group btn-group-sm" role="group" aria-label="Période">
+        <a href="?jours=1" class="btn btn-outline-secondary {% if jours == 1 %}active{% endif %}">Aujourd'hui</a>
+        <a href="?jours=7" class="btn btn-outline-secondary {% if jours == 7 %}active{% endif %}">7 jours</a>
+        <a href="?jours=30" class="btn btn-outline-secondary {% if jours == 30 %}active{% endif %}">30 jours</a>
+      </div>
+      <input type="date" name="du" value="{{ du|date:'Y-m-d' }}" class="form-control form-control-sm w-auto" aria-label="Du">
+      <input type="date" name="au" value="{{ au|date:'Y-m-d' }}" class="form-control form-control-sm w-auto" aria-label="Au">
+      <button class="btn btn-sm btn-pharma">Afficher</button>
+    </form>
+  </div>
+  <div class="card-body">
+    <div class="row g-3 text-center text-md-start">
+      <div class="col-6 col-md">
+        <div class="text-muted small">Ventes validées</div>
+        <div class="fs-5 fw-bold">{{ stats.nb_ventes }}</div>
+      </div>
+      <div class="col-6 col-md">
+        <div class="text-muted small">Chiffre d'affaires</div>
+        <div class="fs-5 fw-bold text-nowrap">{{ stats.chiffre_affaires|floatformat:"0g" }} Ar</div>
+      </div>
+      <div class="col-6 col-md">
+        <div class="text-muted small">Encaissements confirmés</div>
+        <div class="fs-5 fw-bold text-nowrap">{{ stats.encaissements|floatformat:"0g" }} Ar</div>
+        {% if stats.en_attente %}<div class="small text-warning-emphasis">{{ stats.en_attente }} paiement{{ stats.en_attente|pluralize }} à vérifier</div>{% endif %}
+      </div>
+      {% if voit_finances %}
+      <div class="col-6 col-md">
+        <div class="text-muted small">Marge commerciale brute</div>
+        <div class="fs-5 fw-bold text-nowrap">{{ stats.marge|floatformat:"0g" }} Ar</div>
+        <div class="small text-muted">hors charges, pas un bénéfice net</div>
+      </div>
+      {% endif %}
+      {% if voit_achats %}
+      <div class="col-6 col-md">
+        <div class="text-muted small">Achats réceptionnés</div>
+        <div class="fs-5 fw-bold text-nowrap">{{ stats.achats|floatformat:"0g" }} Ar</div>
+        <div class="small text-muted">{{ stats.nb_receptions }} réception{{ stats.nb_receptions|pluralize }}</div>
+      </div>
+      {% endif %}
+    </div>
+
+    <div class="row g-4 mt-1">
+      <div class="col-lg-7">
+        <h3 class="h6 text-muted">Ventes par jour</h3>
+        <table class="table table-sm table-borderless align-middle mb-0">
+          <tbody>
+            {% for j in histogramme %}
+            <tr>
+              <td class="small text-muted text-nowrap" style="width: 5.5rem">{{ j.jour|date:"D d/m" }}</td>
+              <td><progress class="barre" value="{{ j.pourcentage }}" max="100">{{ j.pourcentage }} %</progress></td>
+              <td class="nombre small" style="width: 7.5rem">{{ j.total|floatformat:"0g" }} Ar</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      <div class="col-lg-5">
+        <h3 class="h6 text-muted">Produits les plus vendus</h3>
+        <ol class="list-group list-group-numbered list-group-flush">
+          {% for p in top_produits %}
+            <li class="list-group-item d-flex justify-content-between align-items-start px-0">
+              <div class="ms-2 me-auto">{{ p.medicament__nom }} {{ p.medicament__dosage }}</div>
+              <span class="badge bg-pharma rounded-pill">{{ p.qte_vendue }}</span>
+            </li>
+          {% empty %}
+            <li class="list-group-item text-muted px-0">Aucune vente sur la période.</li>
+          {% endfor %}
+        </ol>
+      </div>
+    </div>
+  </div>
+</div>
+{% endif %}
+
+<div class="row g-3">
+  {# ---------- Alertes de stock ---------- #}
+  {% if voit_stock %}
+  <div class="col-12 col-xl-6">
+    <div class="card carte-stat h-100">
+      <div class="card-header bg-transparent d-flex justify-content-between align-items-center">
+        <h2 class="h6 mb-0"><i class="bi bi-exclamation-triangle text-warning"></i> Alertes de stock</h2>
+        <a href="{% url 'stock_liste' %}?etat=faible" class="small">Voir tout</a>
+      </div>
+      <div class="table-responsive">
+        <table class="table table-sm table-hover align-middle mb-0">
+          <thead class="table-light"><tr><th>Médicament</th><th class="nombre">Vendable</th><th class="nombre">Seuil</th></tr></thead>
+          <tbody>
+            {% for m in alertes_stock %}
+            <tr>
+              <td><a href="{% url 'stock_medicament' m.pk %}" class="text-decoration-none">{{ m }}</a></td>
+              <td class="nombre">
+                {% if m.stock_vendable_calc == 0 %}<span class="badge bg-danger">Rupture</span>{% else %}<span class="badge bg-warning text-dark">{{ m.stock_vendable_calc }}</span>{% endif %}
+              </td>
+              <td class="nombre text-muted">{{ m.seuil_alerte }}</td>
+            </tr>
+            {% empty %}
+            <tr><td colspan="3" class="text-muted text-center py-3"><i class="bi bi-check-circle text-success"></i> Aucun stock sous le seuil d'alerte.</td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  {# ---------- Lots périmés ou proches ---------- #}
+  <div class="col-12 col-xl-6">
+    <div class="card carte-stat h-100">
+      <div class="card-header bg-transparent d-flex justify-content-between align-items-center">
+        <h2 class="h6 mb-0"><i class="bi bi-hourglass-split text-danger"></i> Lots périmés ou proches de la péremption</h2>
+        {% if user|a_role:"Pharmacien responsable,Gestionnaire de stock,Responsable de gestion" %}<a href="{% url 'stock_alertes' %}" class="small">Voir tout</a>{% endif %}
+      </div>
+      <div class="table-responsive">
+        <table class="table table-sm table-hover align-middle mb-0">
+          <thead class="table-light"><tr><th>Médicament</th><th>Lot</th><th>Péremption</th><th class="nombre">Qté</th></tr></thead>
+          <tbody>
+            {% for lot in lots_alerte %}
+            <tr>
+              <td>{{ lot.medicament }}</td>
+              <td class="text-muted">{{ lot.numero_lot }}</td>
+              <td>
+                {{ lot.date_peremption|date:"d/m/Y" }}
+                {% if lot.est_perime %}<span class="badge bg-danger">Périmé</span>{% else %}<span class="badge bg-warning text-dark">{{ lot.jours_restants }} j</span>{% endif %}
+              </td>
+              <td class="nombre">{{ lot.quantite }}</td>
+            </tr>
+            {% empty %}
+            <tr><td colspan="4" class="text-muted text-center py-3"><i class="bi bi-check-circle text-success"></i> Aucun lot à surveiller.</td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+  {% endif %}
+
+  {# ---------- Commandes en cours ---------- #}
+  {% if voit_achats %}
+  <div class="col-12 col-xl-6">
+    <div class="card carte-stat h-100">
+      <div class="card-header bg-transparent d-flex justify-content-between align-items-center">
+        <h2 class="h6 mb-0"><i class="bi bi-truck"></i> Commandes à réceptionner</h2>
+        <a href="{% url 'commande_liste' %}" class="small">Voir tout</a>
+      </div>
+      <ul class="list-group list-group-flush">
+        {% for c in commandes_en_cours %}
+          <li class="list-group-item d-flex justify-content-between align-items-center">
+            <a href="{% url 'commande_detail' c.pk %}" class="text-decoration-none">{{ c.numero }} — {{ c.fournisseur }}</a>
+            <span class="badge bg-{{ c.couleur_statut }}">{{ c.get_statut_display }}</span>
+          </li>
+        {% empty %}
+          <li class="list-group-item text-muted">Aucune commande en attente de réception.</li>
+        {% endfor %}
+      </ul>
+    </div>
+  </div>
+  {% endif %}
+
+  {# ---------- Dernières ventes ---------- #}
+  {% if voit_ventes %}
+  <div class="col-12 col-xl-6">
+    <div class="card carte-stat h-100">
+      <div class="card-header bg-transparent d-flex justify-content-between align-items-center">
+        <h2 class="h6 mb-0"><i class="bi bi-receipt"></i> Dernières ventes</h2>
+        <a href="{% url 'vente_liste' %}" class="small">Voir tout</a>
+      </div>
+      <ul class="list-group list-group-flush">
+        {% for v in dernieres_ventes %}
+          <li class="list-group-item d-flex justify-content-between align-items-center">
+            <a href="{% url 'vente_detail' v.pk %}" class="text-decoration-none">
+              {{ v.numero }} <span class="text-muted small">— {{ v.date|date:"d/m H:i" }} — {{ v.client|default:"Comptoir" }}</span>
+            </a>
+            <span class="text-nowrap {% if v.statut == 'ANNULEE' %}text-decoration-line-through text-muted{% else %}fw-semibold{% endif %}">{{ v.total|floatformat:"0g" }} Ar</span>
+          </li>
+        {% empty %}
+          <li class="list-group-item text-muted">Aucune vente enregistrée.</li>
+        {% endfor %}
+      </ul>
+    </div>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

@@ -1,0 +1,55 @@
+{% extends "base.html" %}
+{% block title %}Connexion{% endblock %}
+{% block body_class %}page-connexion{% endblock %}
+
+{% block content %}
+<div class="connexion">
+  <div class="row align-items-center g-5">
+
+    {# ---------- Accroche ---------- #}
+    <div class="col-lg-7 text-center text-lg-start">
+      <span class="etiquette pleine mb-4"><i class="bi bi-capsule-pill"></i> PharmaGest</span>
+      <h1 class="connexion-titre mb-3">La gestion de votre pharmacie, <span class="texte-degrade">simple et fiable.</span></h1>
+      <p class="connexion-texte mx-auto mx-lg-0 mb-4">Médicaments, stock, achats, caisse et rapports réunis dans un seul espace de travail.</p>
+      <div class="d-flex flex-wrap gap-2 justify-content-center justify-content-lg-start">
+        <span class="etiquette"><i class="bi bi-box-seam"></i> Stock et lots</span>
+        <span class="etiquette"><i class="bi bi-upc-scan"></i> Caisse</span>
+        <span class="etiquette"><i class="bi bi-truck"></i> Achats</span>
+        <span class="etiquette"><i class="bi bi-hourglass-split"></i> Péremptions</span>
+        <span class="etiquette"><i class="bi bi-bar-chart-line"></i> Rapports</span>
+      </div>
+    </div>
+
+    {# ---------- Formulaire ---------- #}
+    <div class="col-lg-5">
+      <div class="carte-connexion">
+        <div class="text-center mb-4">
+          <span class="icone-hero"><i class="bi bi-capsule-pill"></i></span>
+          <h2 class="h4 fw-bold mt-3 mb-1">Connexion</h2>
+          <p class="text-muted small mb-0">Connectez-vous pour continuer</p>
+        </div>
+
+        {% if form.errors %}
+          <div class="alert alert-danger small">Nom d'utilisateur ou mot de passe incorrect.</div>
+        {% endif %}
+
+        <form method="post">
+          {% csrf_token %}
+          <div class="mb-3">
+            <label for="id_username" class="form-label">Nom d'utilisateur</label>
+            <input type="text" name="username" id="id_username" class="form-control"
+                   value="{{ form.username.value|default:'' }}" required autofocus>
+          </div>
+          <div class="mb-4">
+            <label for="id_password" class="form-label">Mot de passe</label>
+            <input type="password" name="password" id="id_password" class="form-control" required>
+          </div>
+          <input type="hidden" name="next" value="{{ next }}">
+          <button type="submit" class="btn btn-pharma btn-lg w-100"><i class="bi bi-box-arrow-in-right"></i> Se connecter</button>
+        </form>
+      </div>
+    </div>
+
+  </div>
+</div>
+{% endblock %}

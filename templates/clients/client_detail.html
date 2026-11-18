@@ -1,0 +1,66 @@
+{% extends "base.html" %}
+{% load roles %}
+{% block title %}{{ c.nom }}{% endblock %}
+
+{% block content %}
+<a href="{% url 'client_liste' %}" class="btn btn-link px-0 mb-2"><i class="bi bi-arrow-left"></i> Retour à la liste</a>
+
+<div class="row g-3">
+  <div class="col-lg-5">
+    <div class="card carte-stat h-100">
+      <div class="card-body p-4">
+        <div class="d-flex justify-content-between align-items-start mb-3">
+          <h1 class="h3 mb-0"><i class="bi bi-person text-success"></i> {{ c.nom }}</h1>
+          {% if c.actif %}<span class="badge bg-success fs-6">Actif</span>{% else %}<span class="badge bg-secondary fs-6">Inactif</span>{% endif %}
+        </div>
+
+        <table class="table table-sm">
+          <tr><th class="w-50">Téléphone</th><td>{{ c.telephone|default:"—" }}</td></tr>
+          <tr><th>E-mail</th><td>{{ c.email|default:"—" }}</td></tr>
+          <tr><th>Adresse</th><td>{{ c.adresse|default:"—"|linebreaksbr }}</td></tr>
+          <tr><th>Créé le</th><td>{{ c.date_creation|date:"d/m/Y H:i" }} par {{ c.cree_par|default:"—" }}</td></tr>
+        </table>
+
+        <div class="d-flex flex-wrap gap-2">
+          {% if user|a_role:"Pharmacien responsable,Caissier" %}
+            <a href="{% url 'client_modifier' c.pk %}" class="btn btn-pharma"><i class="bi bi-pencil"></i> Modifier</a>
+          {% endif %}
+          {% if user|a_role:"Pharmacien responsable" %}
+            <form method="post" action="{% url 'client_basculer_actif' c.pk %}"
+                  onsubmit="return confirm('Confirmer le changement de statut ?');">
+              {% csrf_token %}
+              {% if c.actif %}
+                <button type="submit" class="btn btn-outline-warning"><i class="bi bi-pause-circle"></i> Désactiver</button>
+              {% else %}
+                <button type="submit" class="btn btn-outline-success"><i class="bi bi-play-circle"></i> Réactiver</button>
+              {% endif %}
+            </form>
+          {% endif %}
+          {% if user|a_role:"Administrateur" %}
+            <a href="{% url 'client_supprimer' c.pk %}" class="btn btn-outline-danger"><i class="bi bi-trash"></i> Supprimer</a>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-lg-7">
+    <div class="card carte-stat h-100">
+      <div class="card-body p-4">
+        <h2 class="h5"><i class="bi bi-receipt"></i> Historique des ventes</h2>
+        <p class="text-muted small">Total des ventes validées : <strong>{{ total_ventes|floatformat:"0g" }} Ar</strong></p>
+        <ul class="list-group list-group-flush">
+          {% for v in ventes %}
+            <li class="list-group-item d-flex justify-content-between align-items-center px-0">
+              <a href="{% url 'vente_detail' v.pk %}" class="text-decoration-none">{{ v.numero }} — {{ v.date|date:"d/m/Y H:i" }}</a>
+              <span><span class="badge bg-{{ v.couleur_statut }}">{{ v.get_statut_display }}</span> <span class="ms-2">{{ v.total|floatformat:"0g" }} Ar</span></span>
+            </li>
+          {% empty %}
+            <li class="list-group-item text-muted px-0">Aucune vente pour ce client.</li>
+          {% endfor %}
+        </ul>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

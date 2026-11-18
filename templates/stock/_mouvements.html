@@ -1,0 +1,23 @@
+<div class="table-responsive">
+  <table class="table table-sm align-middle mb-0">
+    <thead class="table-light">
+      <tr><th>Date</th><th>Type</th><th>Médicament / lot</th><th class="nombre">Qté</th><th class="nombre">Avant</th><th class="nombre">Après</th><th>Référence / motif</th><th>Utilisateur</th></tr>
+    </thead>
+    <tbody>
+      {% for mv in mouvements %}
+      <tr>
+        <td class="text-nowrap">{{ mv.date|date:"d/m/Y H:i" }}</td>
+        <td><span class="badge {% if mv.est_entree %}bg-success-subtle text-success-emphasis{% else %}bg-danger-subtle text-danger-emphasis{% endif %}">{{ mv.get_type_display }}</span></td>
+        <td>{{ mv.lot.medicament }} <span class="text-muted small">— lot {{ mv.lot.numero_lot }}</span></td>
+        <td class="nombre fw-semibold">{% if mv.est_entree %}+{% else %}−{% endif %}{{ mv.quantite }}</td>
+        <td class="nombre text-muted">{{ mv.stock_avant }}</td>
+        <td class="nombre">{{ mv.stock_apres }}</td>
+        <td class="small">{{ mv.reference }}{% if mv.reference and mv.motif %} — {% endif %}{{ mv.motif }}</td>
+        <td class="small">{{ mv.utilisateur }}</td>
+      </tr>
+      {% empty %}
+      <tr><td colspan="8" class="text-center text-muted py-4">Aucun mouvement.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>

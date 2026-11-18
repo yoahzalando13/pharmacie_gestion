@@ -1,0 +1,25 @@
+digraph C {
+graph [rankdir=TB, fontname="Helvetica", fontsize=18, labelloc=t, label="Architecture — Applications Django et dépendances (diagramme de composants)\n ", nodesep=0.5, ranksep=0.8, bgcolor="white", pad=0.4, compound=true];
+node [shape=component, style=filled, fillcolor="#f0fdf4", color="#15803d", fontname="Helvetica", fontsize=12];
+edge [color="#475569", arrowhead=vee, style=dashed, fontname="Helvetica", fontsize=10];
+nav [shape=box, style="rounded,filled", fillcolor="#f1f5f9", color="#334155", label="Navigateur\n(HTML, CSS, Bootstrap 5)"];
+subgraph cluster_proj { label="Projet Django « pharmacie » (settings, urls, gabarits, static)"; style=rounded; color="#16a34a"; penwidth=2; fontsize=13;
+  rapports [label="rapports\n(tableau de bord, PDF ReportLab)"];
+  ventes [label="ventes\n(caisse, paiements, retours)"];
+  achats [label="achats\n(commandes, réceptions)"];
+  stock [label="stock\n(lots, mouvements, inventaire)"];
+  medicaments [label="medicaments\n(catalogue, photos)"];
+  fournisseurs; clients;
+  utilisateurs [label="utilisateurs\n(comptes, rôles, journal)"];
+}
+db [shape=cylinder, style=filled, fillcolor="#eff6ff", color="#1d4ed8", label="SQLite (dev)\nPostgreSQL (prod)"];
+media [shape=folder, style=filled, fillcolor="#fefce8", color="#a16207", label="media/\n(photos)"];
+nav -> rapports [label="HTTP", style=solid, lhead=cluster_proj];
+rapports -> ventes; rapports -> achats; rapports -> stock;
+ventes -> stock; ventes -> clients; ventes -> medicaments;
+achats -> stock; achats -> fournisseurs; achats -> medicaments;
+stock -> medicaments;
+medicaments -> utilisateurs; fournisseurs -> utilisateurs; clients -> utilisateurs; stock -> utilisateurs;
+utilisateurs -> db [label="ORM", style=solid, ltail=cluster_proj];
+medicaments -> media [style=solid];
+}

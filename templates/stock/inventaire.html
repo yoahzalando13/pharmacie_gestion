@@ -1,0 +1,47 @@
+{% extends "base.html" %}
+{% block title %}Inventaire physique{% endblock %}
+
+{% block content %}
+<h1 class="h3">Inventaire physique</h1>
+<p class="text-muted">Comptez les unités présentes en rayon et saisissez la quantité trouvée pour chaque lot. Laissez vide un lot non compté.
+Chaque écart crée une correction d'inventaire traçable.</p>
+
+<form method="get" class="d-flex gap-2 mb-3">
+  <select name="categorie" class="form-select w-auto" aria-label="Catégorie">
+    <option value="">Toutes les catégories</option>
+    {% for c in categories %}<option value="{{ c.pk }}" {% if c.pk|stringformat:"s" == categorie_id %}selected{% endif %}>{{ c.nom }}</option>{% endfor %}
+  </select>
+  <button class="btn btn-outline-secondary">Afficher</button>
+</form>
+
+<form method="post" class="card carte-stat" onsubmit="return confirm('Enregistrer l\'inventaire ? Les écarts corrigeront le stock.');">
+  {% csrf_token %}
+  <div class="table-responsive">
+    <table class="table align-middle mb-0">
+      <thead class="table-light"><tr><th>Médicament</th><th>Lot</th><th>Péremption</th><th class="nombre">Stock théorique</th><th style="width: 10rem">Quantité comptée</th></tr></thead>
+      <tbody>
+        {% for lot in lots %}
+        <tr>
+          <td>{{ lot.medicament }}</td>
+          <td>{{ lot.numero_lot }}</td>
+          <td>{{ lot.date_peremption|date:"d/m/Y" }}{% if lot.est_perime %} <span class="badge bg-danger">Périmé</span>{% endif %}</td>
+          <td class="nombre">{{ lot.quantite }}</td>
+          <td><input type="number" min="0" step="1" name="lot_{{ lot.pk }}" class="form-control form-control-sm" aria-label="Quantité comptée pour le lot {{ lot.numero_lot }}"></td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="5" class="text-center text-muted py-4">Aucun lot en stock.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% if lots %}
+  <div class="card-body border-top row g-2 align-items-end">
+    <div class="col-md-8">
+      <label class="form-label" for="motif">Motif</label>
+      <input type="text" id="motif" name="motif" class="form-control" value="Inventaire physique">
+    </div>
+    <div class="col-md-4 d-grid"><button class="btn btn-pharma"><i class="bi bi-clipboard-check"></i> Enregistrer l'inventaire</button></div>
+  </div>
+  {% endif %}
+</form>
+{% endblock %}

@@ -1,0 +1,100 @@
+{% extends "base.html" %}
+{% block title %}Vente {{ vente.numero }}{% endblock %}
+
+{% block content %}
+<a href="{% url 'vente_liste' %}" class="btn btn-link px-0 mb-2"><i class="bi bi-arrow-left"></i> Retour aux ventes</a>
+
+<div class="d-flex flex-wrap justify-content-between align-items-start gap-2 mb-3">
+  <div>
+    <h1 class="h3 mb-1">Vente {{ vente.numero }} <span class="badge bg-{{ vente.couleur_statut }} fs-6 align-middle">{{ vente.get_statut_display }}</span></h1>
+    <div class="text-muted">{{ vente.date|date:"d/m/Y H:i" }} — vendeur : {{ vente.vendeur }} — client :
+      {% if vente.client %}<a href="{% url 'client_detail' vente.client_id %}">{{ vente.client }}</a>{% else %}comptoir{% endif %}</div>
+    {% if vente.statut == "ANNULEE" %}
+      <div class="text-danger small mt-1">Annulée le {{ vente.date_annulation|date:"d/m/Y H:i" }} par {{ vente.annule_par }} — motif : {{ vente.motif_annulation }}</div>
+    {% endif %}
+  </div>
+  <div class="d-flex flex-wrap gap-2">
+    <a href="{% url 'pdf_recu' vente.pk %}" target="_blank" class="btn btn-pharma"><i class="bi bi-printer"></i> Reçu</a>
+    <a href="{% url 'pdf_facture' vente.pk %}" target="_blank" class="btn btn-outline-secondary"><i class="bi bi-file-earmark-pdf"></i> Facture</a>
+    {% if peut_retour %}<a href="{% url 'retour_creer' vente.pk %}" class="btn btn-outline-warning"><i class="bi bi-arrow-counterclockwise"></i> Retour produit</a>{% endif %}
+  </div>
+</div>
+
+<div class="card carte-stat mb-3">
+  <div class="table-responsive">
+    <table class="table align-middle mb-0">
+      <thead class="table-light"><tr><th>Médicament</th><th>Lot</th><th class="nombre">Qté</th><th class="nombre">Retournée</th><th class="nombre">Prix appliqué</th><th class="nombre">Sous-total</th></tr></thead>
+      <tbody>
+        {% for l in lignes %}
+        <tr>
+          <td>{{ l.medicament }}</td>
+          <td>{{ l.lot.numero_lot }} <span class="small text-muted">exp. {{ l.lot.date_peremption|date:"m/Y" }}</span></td>
+          <td class="nombre">{{ l.quantite }}</td>
+          <td class="nombre">{% if l.quantite_retournee %}{{ l.quantite_retournee }}{% else %}—{% endif %}</td>
+          <td class="nombre">{{ l.prix_unitaire|floatformat:"0g" }} Ar</td>
+          <td class="nombre">{{ l.sous_total|floatformat:"0g" }} Ar</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+      <tfoot><tr class="fw-bold"><td colspan="5">Total</td><td class="nombre">{{ vente.total|floatformat:"0g" }} Ar</td></tr></tfoot>
+    </table>
+  </div>
+</div>
+
+<div class="row g-3">
+  <div class="col-lg-6">
+    <div class="card carte-stat h-100">
+      <div class="card-header bg-transparent"><h2 class="h6 mb-0"><i class="bi bi-wallet2"></i> Paiements</h2></div>
+      <ul class="list-group list-group-flush">
+        {% for p in paiements %}
+        <li class="list-group-item">
+          <div class="d-flex justify-content-between">
+            <span>{{ p.get_mode_display }} — <strong>{{ p.montant|floatformat:"0g" }} Ar</strong></span>
+            <span class="badge {% if p.statut == 'CONFIRME' %}bg-success{% elif p.statut == 'EN_ATTENTE' %}bg-warning text-dark{% else %}bg-danger{% endif %}">{{ p.get_statut_display }}</span>
+          </div>
+          <div class="small text-muted">
+            {% if p.montant_recu is not None %}Reçu {{ p.montant_recu|floatformat:"0g" }} Ar — rendu {{ p.monnaie_rendue|floatformat:"0g" }} Ar. {% endif %}
+            {% if p.reference %}Réf. {{ p.reference }}. {% endif %}
+            {% if p.verifie_par %}Vérifié par {{ p.verifie_par }} le {{ p.date_verification|date:"d/m/Y H:i" }}.{% endif %}
+          </div>
+          {% if p.statut == "EN_ATTENTE" and peut_verifier %}
+          <form method="post" action="{% url 'paiement_verifier' p.pk %}" class="d-flex flex-wrap gap-2 mt-2">
+            {% csrf_token %}
+            <input type="text" name="reference" value="{{ p.reference }}" class="form-control form-control-sm w-auto" placeholder="Référence vérifiée" aria-label="Référence de transaction">
+            <button name="decision" value="confirmer" class="btn btn-sm btn-success"><i class="bi bi-check-lg"></i> Paiement reçu</button>
+            <button name="decision" value="rejeter" class="btn btn-sm btn-outline-danger" onclick="return confirm('Rejeter ce paiement ?');"><i class="bi bi-x-lg"></i> Rejeter</button>
+          </form>
+          {% endif %}
+        </li>
+        {% endfor %}
+      </ul>
+    </div>
+  </div>
+
+  <div class="col-lg-6">
+    <div class="card carte-stat h-100">
+      <div class="card-header bg-transparent"><h2 class="h6 mb-0"><i class="bi bi-arrow-counterclockwise"></i> Retours</h2></div>
+      <ul class="list-group list-group-flush">
+        {% for r in retours %}
+        <li class="list-group-item">
+          <div class="d-flex justify-content-between"><span>{{ r.numero }} — {{ r.quantite }} × {{ r.ligne.medicament }}</span><strong>{{ r.montant_rembourse|floatformat:"0g" }} Ar</strong></div>
+          <div class="small text-muted">{{ r.date|date:"d/m/Y H:i" }} — {{ r.utilisateur }} — {{ r.motif }} — {% if r.remis_en_stock %}remis en stock{% else %}non remis en stock{% endif %}</div>
+        </li>
+        {% empty %}
+        <li class="list-group-item text-muted">Aucun retour sur cette vente.</li>
+        {% endfor %}
+      </ul>
+      {% if peut_annuler %}
+      <div class="card-body border-top">
+        <form method="post" action="{% url 'vente_annuler' vente.pk %}" class="d-flex flex-wrap gap-2" onsubmit="return confirm('Annuler toute la vente ? Le stock sera réintégré.');">
+          {% csrf_token %}
+          <input type="text" name="motif" class="form-control form-control-sm flex-grow-1 w-auto" placeholder="Motif de l'annulation" required aria-label="Motif de l'annulation">
+          <button class="btn btn-sm btn-outline-danger"><i class="bi bi-x-circle"></i> Annuler la vente</button>
+        </form>
+        <div class="form-text">L'annulation est une opération compensatoire : la vente reste visible avec le statut « Annulée ».</div>
+      </div>
+      {% endif %}
+    </div>
+  </div>
+</div>
+{% endblock %}

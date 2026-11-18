@@ -1,0 +1,139 @@
+---
+title: PharmaGest — Diagramme de classes (UML)
+---
+classDiagram
+  direction LR
+  class Utilisateur {
+    +username : str
+    +first_name : str
+    +last_name : str
+    +telephone : str
+    +is_active : bool
+  }
+  class Groupe {
+    +name : str
+  }
+  class JournalAudit {
+    +action : str
+    +objet : str
+    +details : str
+    +date : datetime
+    +enregistrer(utilisateur, action, objet, details)$
+  }
+  class Categorie {
+    +nom : str
+    +description : str
+  }
+  class Medicament {
+    +nom : str
+    +dci : str
+    +forme : Forme
+    +dosage : str
+    +code_barres : str
+    +photo : Image
+    +prix_achat : Decimal
+    +prix_vente : Decimal
+    +seuil_alerte : int
+    +statut : ACTIF|ARCHIVE
+    +stock_total() int
+    +stock_vendable() int
+    +est_sous_seuil() bool
+  }
+  class Fournisseur {
+    +nom : str
+    +telephone : str
+    +numero_fiscal : str
+    +actif : bool
+  }
+  class Client {
+    +nom : str
+    +telephone : str
+    +actif : bool
+  }
+  class CommandeAchat {
+    +numero : str
+    +statut : Statut
+    +date_validation : datetime
+    +total() Decimal
+    +peut_etre_receptionnee() bool
+    +mettre_a_jour_statut()
+  }
+  class LigneAchat {
+    +quantite_commandee : int
+    +prix_achat : Decimal
+    +quantite_recue : int
+    +reste_a_recevoir() int
+  }
+  class ReceptionAchat {
+    +numero : str
+    +date_reception : datetime
+    +jeton : str
+    +total() Decimal
+  }
+  class LigneReception {
+    +quantite : int
+    +prix_achat : Decimal
+  }
+  class LotStock {
+    +numero_lot : str
+    +date_peremption : date
+    +quantite : int
+    +bloque : bool
+    +est_perime() bool
+    +est_vendable() bool
+  }
+  class MouvementStock {
+    +type : Type
+    +quantite : int
+    +stock_avant : int
+    +stock_apres : int
+    +reference : str
+    +motif : str
+  }
+  class Vente {
+    +numero : str
+    +statut : VALIDEE|ANNULEE
+    +total : Decimal
+    +jeton : str
+    +montant_paye() Decimal
+  }
+  class LigneVente {
+    +quantite : int
+    +prix_unitaire : Decimal
+    +cout_unitaire : Decimal
+    +quantite_retournable() int
+  }
+  class Paiement {
+    +mode : ModePaiement
+    +montant : Decimal
+    +reference : str
+    +statut : CONFIRME|EN_ATTENTE|REJETE
+    +monnaie_rendue() Decimal
+  }
+  class RetourVente {
+    +numero : str
+    +quantite : int
+    +motif : str
+    +remis_en_stock : bool
+    +montant_rembourse : Decimal
+  }
+
+  Utilisateur "0..*" -- "0..*" Groupe : rôles
+  JournalAudit "0..*" --> "0..1" Utilisateur : auteur
+  Medicament "0..*" --> "1" Categorie
+  LotStock "0..*" --> "1" Medicament
+  CommandeAchat "0..*" --> "1" Fournisseur
+  CommandeAchat "1" *-- "1..*" LigneAchat
+  LigneAchat "0..*" --> "1" Medicament
+  ReceptionAchat "0..*" --> "1" CommandeAchat
+  ReceptionAchat "1" *-- "1..*" LigneReception
+  LigneReception "0..*" --> "1" LigneAchat
+  LigneReception "0..*" --> "1" LotStock
+  MouvementStock "0..*" --> "1" LotStock
+  MouvementStock "0..*" --> "1" Utilisateur : auteur
+  Vente "0..*" --> "0..1" Client
+  Vente "0..*" --> "1" Utilisateur : vendeur
+  Vente "1" *-- "1..*" LigneVente
+  LigneVente "0..*" --> "1" LotStock
+  Vente "1" *-- "1..*" Paiement
+  RetourVente "0..*" --> "1" LigneVente

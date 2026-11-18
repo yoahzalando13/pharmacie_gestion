@@ -1,0 +1,69 @@
+{% extends "base.html" %}
+{% load roles %}
+{% block title %}{{ m }}{% endblock %}
+
+{% block content %}
+<a href="{% url 'medicament_liste' %}" class="btn btn-link px-0 mb-2"><i class="bi bi-arrow-left"></i> Retour à la liste</a>
+
+<div class="row g-3">
+  <div class="col-md-4">
+    <div class="card carte-stat h-100">
+      <div class="card-body text-center">
+        {% if m.photo %}
+          <img src="{{ m.photo.url }}" alt="{{ m.nom }}" class="img-fluid photo-detail">
+        {% else %}
+          <div class="miniature-vide photo-detail-vide"><i class="bi bi-capsule"></i></div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+
+  <div class="col-md-8">
+    <div class="card carte-stat h-100">
+      <div class="card-body p-4">
+        <div class="d-flex justify-content-between align-items-start mb-3">
+          <div>
+            <h1 class="h3 mb-1">{{ m.nom }} {{ m.dosage }}</h1>
+            <div class="text-muted">{{ m.dci|default:"DCI non renseignée" }}</div>
+          </div>
+          {% if m.statut == "ACTIF" %}
+            <span class="badge bg-success fs-6">Actif</span>
+          {% else %}
+            <span class="badge bg-secondary fs-6">Archivé</span>
+          {% endif %}
+        </div>
+
+        <table class="table table-sm">
+          <tr><th class="w-50">Catégorie</th><td>{{ m.categorie }}</td></tr>
+          <tr><th>Forme</th><td>{{ m.get_forme_display }}</td></tr>
+          <tr><th>Laboratoire</th><td>{{ m.laboratoire|default:"—" }}</td></tr>
+          <tr><th>Code-barres</th><td>{{ m.code_barres|default:"—" }}</td></tr>
+          <tr><th>Prix d'achat</th><td>{{ m.prix_achat|floatformat:"-2g" }} Ar</td></tr>
+          <tr><th>Prix de vente</th><td class="fw-bold">{{ m.prix_vente|floatformat:"-2g" }} Ar</td></tr>
+          <tr><th>Seuil d'alerte</th><td>{{ m.seuil_alerte }} unités</td></tr>
+          <tr><th>Stock vendable</th><td>{% with sv=m.stock_vendable %}<span class="fw-bold {% if sv == 0 %}text-danger{% elif sv <= m.seuil_alerte %}text-warning-emphasis{% endif %}">{{ sv }}</span>{% endwith %} unités (total {{ m.stock_total }}) — <a href="{% url 'stock_medicament' m.pk %}">voir les lots</a></td></tr>
+          <tr><th>Créé le</th><td>{{ m.date_creation|date:"d/m/Y H:i" }} par {{ m.cree_par|default:"—" }}</td></tr>
+        </table>
+
+        <div class="d-flex flex-wrap gap-2">
+          {% if user|a_role:"Pharmacien responsable" %}
+            <a href="{% url 'medicament_modifier' m.pk %}" class="btn btn-pharma"><i class="bi bi-pencil"></i> Modifier</a>
+            <form method="post" action="{% url 'medicament_basculer_statut' m.pk %}"
+                  onsubmit="return confirm('Confirmer le changement de statut ?');">
+              {% csrf_token %}
+              {% if m.statut == "ACTIF" %}
+                <button type="submit" class="btn btn-outline-warning"><i class="bi bi-archive"></i> Archiver</button>
+              {% else %}
+                <button type="submit" class="btn btn-outline-success"><i class="bi bi-arrow-counterclockwise"></i> Réactiver</button>
+              {% endif %}
+            </form>
+          {% endif %}
+          {% if user|a_role:"Administrateur" %}
+            <a href="{% url 'medicament_supprimer' m.pk %}" class="btn btn-outline-danger"><i class="bi bi-trash"></i> Supprimer</a>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

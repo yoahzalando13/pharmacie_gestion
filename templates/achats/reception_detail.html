@@ -1,0 +1,35 @@
+{% extends "base.html" %}
+{% block title %}Réception {{ reception.numero }}{% endblock %}
+
+{% block content %}
+<a href="{% url 'commande_detail' reception.commande_id %}" class="btn btn-link px-0 mb-2"><i class="bi bi-arrow-left"></i> Retour à la commande</a>
+<div class="d-flex flex-wrap justify-content-between align-items-start gap-2 mb-3">
+  <div>
+    <h1 class="h3 mb-1">Réception {{ reception.numero }}</h1>
+    <div class="text-muted">Commande {{ reception.commande.numero }} — {{ reception.commande.fournisseur }} — reçue le {{ reception.date_reception|date:"d/m/Y H:i" }} par {{ reception.recu_par }}</div>
+  </div>
+  <a href="{% url 'pdf_bon_reception' reception.pk %}" target="_blank" class="btn btn-outline-secondary"><i class="bi bi-file-earmark-pdf"></i> Bon de réception</a>
+</div>
+
+<div class="card carte-stat">
+  <div class="table-responsive">
+    <table class="table align-middle mb-0">
+      <thead class="table-light"><tr><th>Médicament</th><th>Lot</th><th>Péremption</th><th class="nombre">Quantité</th><th class="nombre">P.U.</th><th class="nombre">Montant</th></tr></thead>
+      <tbody>
+        {% for l in lignes %}
+        <tr>
+          <td>{{ l.ligne_achat.medicament }}</td>
+          <td>{{ l.lot.numero_lot }}</td>
+          <td>{{ l.lot.date_peremption|date:"d/m/Y" }}</td>
+          <td class="nombre">{{ l.quantite }}</td>
+          <td class="nombre">{{ l.prix_achat|floatformat:"-2g" }} Ar</td>
+          <td class="nombre">{{ l.montant|floatformat:"-2g" }} Ar</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+      <tfoot><tr class="fw-bold"><td colspan="5">Total</td><td class="nombre">{{ reception.total|floatformat:"-2g" }} Ar</td></tr></tfoot>
+    </table>
+  </div>
+  {% if reception.note %}<div class="card-body border-top"><i class="bi bi-sticky"></i> {{ reception.note|linebreaksbr }}</div>{% endif %}
+</div>
+{% endblock %}

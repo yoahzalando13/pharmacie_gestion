@@ -1,0 +1,96 @@
+{% extends "base.html" %}
+{% load roles %}
+{% block title %}Rapports{% endblock %}
+
+{% block content %}
+<div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+  <h1 class="h3 mb-0"><i class="bi bi-bar-chart-line"></i> Rapports et statistiques</h1>
+  <form method="get" class="d-flex flex-wrap gap-2 align-items-center">
+    <label class="small text-muted" for="du">Du</label>
+    <input type="date" id="du" name="du" value="{{ du|date:'Y-m-d' }}" class="form-control form-control-sm w-auto">
+    <label class="small text-muted" for="au">au</label>
+    <input type="date" id="au" name="au" value="{{ au|date:'Y-m-d' }}" class="form-control form-control-sm w-auto">
+    <button class="btn btn-sm btn-pharma">Afficher</button>
+  </form>
+</div>
+
+<div class="row g-3 mb-3">
+  <div class="col-6 col-lg-3"><div class="card carte-stat h-100"><div class="card-body">
+    <div class="text-muted small">Chiffre d'affaires</div>
+    <div class="fs-4 fw-bold text-nowrap">{{ stats.chiffre_affaires|floatformat:"0g" }} Ar</div>
+    <div class="small text-muted">{{ stats.nb_ventes }} vente{{ stats.nb_ventes|pluralize }}, retours déduits ({{ stats.retours|floatformat:"0g" }} Ar)</div>
+  </div></div></div>
+  <div class="col-6 col-lg-3"><div class="card carte-stat h-100"><div class="card-body">
+    <div class="text-muted small">Encaissements confirmés</div>
+    <div class="fs-4 fw-bold text-nowrap">{{ stats.encaissements|floatformat:"0g" }} Ar</div>
+    <div class="small text-muted">{% if stats.en_attente %}{{ stats.en_attente }} paiement{{ stats.en_attente|pluralize }} en attente de vérification{% else %}aucun paiement en attente{% endif %}</div>
+  </div></div></div>
+  <div class="col-6 col-lg-3"><div class="card carte-stat h-100"><div class="card-body">
+    <div class="text-muted small">Marge commerciale brute</div>
+    <div class="fs-4 fw-bold text-nowrap">{{ stats.marge|floatformat:"0g" }} Ar</div>
+    <div class="small text-muted">prix de vente − prix d'achat ; ce n'est pas un bénéfice net</div>
+  </div></div></div>
+  <div class="col-6 col-lg-3"><div class="card carte-stat h-100"><div class="card-body">
+    <div class="text-muted small">Achats réceptionnés</div>
+    <div class="fs-4 fw-bold text-nowrap">{{ stats.achats|floatformat:"0g" }} Ar</div>
+    <div class="small text-muted">{{ stats.nb_receptions }} réception{{ stats.nb_receptions|pluralize }}</div>
+  </div></div></div>
+</div>
+
+<div class="row g-3 mb-3">
+  <div class="col-lg-7">
+    <div class="card carte-stat h-100">
+      <div class="card-header bg-transparent"><h2 class="h6 mb-0">Ventes par jour</h2></div>
+      <div class="card-body">
+        <table class="table table-sm table-borderless align-middle mb-0">
+          <tbody>
+            {% for j in histogramme %}
+            <tr>
+              <td class="small text-muted text-nowrap" style="width: 5.5rem">{{ j.jour|date:"D d/m" }}</td>
+              <td><progress class="barre" value="{{ j.pourcentage }}" max="100">{{ j.pourcentage }} %</progress></td>
+              <td class="nombre small" style="width: 7.5rem">{{ j.total|floatformat:"0g" }} Ar</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+        {% if histogramme|length >= 31 %}<div class="form-text">Seuls les 31 derniers jours de la période sont affichés.</div>{% endif %}
+      </div>
+    </div>
+  </div>
+  <div class="col-lg-5">
+    <div class="card carte-stat mb-3">
+      <div class="card-header bg-transparent"><h2 class="h6 mb-0">Encaissements par mode de paiement</h2></div>
+      <ul class="list-group list-group-flush">
+        {% for p in par_mode %}
+          <li class="list-group-item d-flex justify-content-between"><span>{% for code, libelle in libelles_modes.items %}{% if code == p.mode %}{{ libelle }}{% endif %}{% endfor %} <span class="text-muted small">({{ p.nombre }})</span></span><strong>{{ p.total|floatformat:"0g" }} Ar</strong></li>
+        {% empty %}<li class="list-group-item text-muted">Aucun encaissement sur la période.</li>{% endfor %}
+      </ul>
+    </div>
+    <div class="card carte-stat">
+      <div class="card-header bg-transparent"><h2 class="h6 mb-0">Documents PDF</h2></div>
+      <div class="list-group list-group-flush">
+        <a class="list-group-item list-group-item-action" target="_blank" href="{% url 'pdf_ventes' %}?du={{ du|date:'Y-m-d' }}&au={{ au|date:'Y-m-d' }}"><i class="bi bi-file-earmark-pdf text-danger"></i> Rapport des ventes de la période</a>
+        <a class="list-group-item list-group-item-action" target="_blank" href="{% url 'pdf_achats' %}?du={{ du|date:'Y-m-d' }}&au={{ au|date:'Y-m-d' }}"><i class="bi bi-file-earmark-pdf text-danger"></i> Rapport des achats de la période</a>
+        <a class="list-group-item list-group-item-action" target="_blank" href="{% url 'pdf_stock' %}"><i class="bi bi-file-earmark-pdf text-danger"></i> Rapport de stock (état actuel)</a>
+        <a class="list-group-item list-group-item-action" target="_blank" href="{% url 'pdf_peremptions' %}"><i class="bi bi-file-earmark-pdf text-danger"></i> Produits périmés ou expirant sous {{ jours_alerte }} jours</a>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="card carte-stat">
+  <div class="card-header bg-transparent"><h2 class="h6 mb-0">Produits les plus vendus</h2></div>
+  <div class="table-responsive">
+    <table class="table table-sm align-middle mb-0">
+      <thead class="table-light"><tr><th>#</th><th>Médicament</th><th class="nombre">Quantité vendue</th><th class="nombre">Montant</th></tr></thead>
+      <tbody>
+        {% for p in top_produits %}
+        <tr><td>{{ forloop.counter }}</td><td>{{ p.medicament__nom }} {{ p.medicament__dosage }}</td><td class="nombre">{{ p.qte_vendue }}</td><td class="nombre">{{ p.montant|floatformat:"0g" }} Ar</td></tr>
+        {% empty %}
+        <tr><td colspan="4" class="text-center text-muted py-3">Aucune vente sur la période.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

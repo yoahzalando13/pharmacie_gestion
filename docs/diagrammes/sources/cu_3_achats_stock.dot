@@ -1,0 +1,43 @@
+digraph CU {
+graph [rankdir=LR, fontname="Helvetica", fontsize=18, labelloc=t, label="Cas d'utilisation 3 — Achats et stock\n ", nodesep=0.3, ranksep=1.4, bgcolor="white", pad=0.4];
+node [fontname="Helvetica", fontsize=12]; edge [color="#475569", arrowhead=none, penwidth=1.1];
+subgraph acteurs { rank=same; node [shape=box, style="rounded,filled", fillcolor="#f1f5f9", color="#334155"];
+PHA [label="«acteur»\nPharmacien responsable"];
+STO [label="«acteur»\nGestionnaire de stock"];
+GES [label="«acteur»\nResponsable de gestion"];
+CAI [label="«acteur»\nCaissier"];
+}
+subgraph cluster_sys { label="Système PharmaGest"; fontsize=14; style="rounded"; color="#16a34a"; penwidth=2; node [shape=ellipse, style=filled, fillcolor="#f0fdf4", color="#15803d"];
+cmd [label="Créer une commande\n(brouillon)"];
+val [label="Valider / annuler\nune commande"];
+rec [label="Réceptionner une commande\n(n° de lot, péremption)"];
+bon [label="Imprimer bon de commande\n/ bon de réception"];
+stk [label="Consulter l'état du stock"];
+alr [label="Consulter les alertes\n(ruptures, péremptions)"];
+mvt [label="Consulter les mouvements"];
+cor [label="Corriger le stock\n(motif obligatoire)"];
+inv [label="Saisir un inventaire physique"];
+blq [label="Bloquer / débloquer un lot"];
+}
+PHA -> cmd;
+PHA -> val;
+PHA -> rec;
+PHA -> alr;
+PHA -> cor;
+PHA -> inv;
+PHA -> blq;
+STO -> cmd;
+STO -> val;
+STO -> rec;
+STO -> alr;
+STO -> mvt;
+STO -> cor;
+STO -> inv;
+GES -> stk;
+GES -> alr;
+GES -> mvt;
+GES -> bon;
+CAI -> stk;
+bon -> rec [style=dashed, arrowhead=vee, color="#0f766e", fontcolor="#0f766e", fontsize=10, label="«extend»", constraint=false];
+inv -> cor [style=dashed, arrowhead=vee, color="#0f766e", fontcolor="#0f766e", fontsize=10, label="«include»", constraint=false];
+}

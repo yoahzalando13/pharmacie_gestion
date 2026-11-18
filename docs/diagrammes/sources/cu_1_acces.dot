@@ -1,0 +1,26 @@
+digraph CU {
+graph [rankdir=LR, fontname="Helvetica", fontsize=18, labelloc=t, label="Cas d'utilisation 1 — Accès et administration\n ", nodesep=0.3, ranksep=1.4, bgcolor="white", pad=0.4];
+node [fontname="Helvetica", fontsize=12]; edge [color="#475569", arrowhead=none, penwidth=1.1];
+subgraph acteurs { rank=same; node [shape=box, style="rounded,filled", fillcolor="#f1f5f9", color="#334155"];
+USR [label="«acteur»\nUtilisateur connecté"];
+ADM [label="«acteur»\nAdministrateur"];
+}
+subgraph cluster_sys { label="Système PharmaGest"; fontsize=14; style="rounded"; color="#16a34a"; penwidth=2; node [shape=ellipse, style=filled, fillcolor="#f0fdf4", color="#15803d"];
+auth [label="S'authentifier"];
+mdp [label="Changer son mot de passe"];
+tdb [label="Consulter le tableau de bord"];
+cpt [label="Gérer les comptes\n(créer, modifier, désactiver)"];
+rol [label="Attribuer les rôles"];
+rmdp [label="Réinitialiser un mot de passe"];
+jrn [label="Consulter le journal d'audit"];
+}
+USR -> auth;
+USR -> mdp;
+USR -> tdb;
+ADM -> cpt;
+ADM -> rmdp;
+ADM -> jrn;
+cpt -> rol [style=dashed, arrowhead=vee, color="#0f766e", fontcolor="#0f766e", fontsize=10, label="«include»", constraint=false];
+ADM -> USR [arrowhead=onormal, color="#334155", constraint=false];
+note [shape=note, style=filled, fillcolor="#fffbeb", color="#d97706", fontsize=11, label="Tous les rôles héritent de « Utilisateur connecté ».\nL'administrateur a accès à toutes les pages."];
+}

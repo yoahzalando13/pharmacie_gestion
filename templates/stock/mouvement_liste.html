@@ -1,0 +1,27 @@
+{% extends "base.html" %}
+{% block title %}Mouvements de stock{% endblock %}
+
+{% block content %}
+<h1 class="h3 mb-3">Mouvements de stock <span class="badge bg-secondary fs-6">{{ page.paginator.count }}</span></h1>
+<p class="text-muted">Toute variation du stock est enregistrée ici et ne peut jamais être modifiée (RG09).</p>
+
+<form method="get" class="card carte-stat mb-3">
+  <div class="card-body row g-2">
+    <div class="col-md-4"><input type="search" name="q" value="{{ q }}" class="form-control" placeholder="Médicament, lot ou référence"></div>
+    <div class="col-md-3">
+      <select name="type" class="form-select">
+        <option value="">Tous les types</option>
+        {% for valeur, libelle in types %}<option value="{{ valeur }}" {% if type == valeur %}selected{% endif %}>{{ libelle }}</option>{% endfor %}
+      </select>
+    </div>
+    <div class="col-6 col-md-2"><input type="date" name="du" value="{{ du }}" class="form-control" aria-label="Du"></div>
+    <div class="col-6 col-md-2"><input type="date" name="au" value="{{ au }}" class="form-control" aria-label="Au"></div>
+    <div class="col-md-1 d-grid"><button class="btn btn-pharma" title="Filtrer"><i class="bi bi-search"></i></button></div>
+  </div>
+</form>
+
+<div class="card carte-stat">
+  {% include "stock/_mouvements.html" with mouvements=page %}
+</div>
+{% include "pagination.html" %}
+{% endblock %}

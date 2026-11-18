@@ -1,0 +1,113 @@
+{% extends "base.html" %}
+{% load roles %}
+{% block title %}Commande {{ commande.numero }}{% endblock %}
+
+{% block content %}
+<a href="{% url 'commande_liste' %}" class="btn btn-link px-0 mb-2"><i class="bi bi-arrow-left"></i> Retour aux commandes</a>
+
+<div class="d-flex flex-wrap justify-content-between align-items-start gap-2 mb-3">
+  <div>
+    <h1 class="h3 mb-1">Commande {{ commande.numero }} <span class="badge bg-{{ commande.couleur_statut }} fs-6 align-middle">{{ commande.get_statut_display }}</span></h1>
+    <div class="text-muted">
+      Fournisseur : <a href="{% url 'fournisseur_detail' commande.fournisseur_id %}">{{ commande.fournisseur }}</a>
+      — créée le {{ commande.date_creation|date:"d/m/Y H:i" }} par {{ commande.cree_par }}
+      {% if commande.valide_par %}— validée le {{ commande.date_validation|date:"d/m/Y H:i" }} par {{ commande.valide_par }}{% endif %}
+      {% if commande.annule_par %}— annulée le {{ commande.date_annulation|date:"d/m/Y H:i" }} par {{ commande.annule_par }}{% endif %}
+    </div>
+  </div>
+  <div class="d-flex flex-wrap gap-2">
+    <a href="{% url 'pdf_bon_commande' commande.pk %}" target="_blank" class="btn btn-outline-secondary"><i class="bi bi-file-earmark-pdf"></i> Bon de commande</a>
+    {% if peut_gerer %}
+      {% if commande.est_modifiable %}
+        <form method="post" action="{% url 'commande_valider' commande.pk %}" onsubmit="return confirm('Valider la commande ? Elle ne pourra plus être modifiée.');">
+          {% csrf_token %}<button class="btn btn-pharma"><i class="bi bi-check2-circle"></i> Valider la commande</button>
+        </form>
+      {% endif %}
+      {% if commande.peut_etre_receptionnee %}
+        <a href="{% url 'reception_creer' commande.pk %}" class="btn btn-success"><i class="bi bi-box-arrow-in-down"></i> Réceptionner</a>
+      {% endif %}
+      {% if commande.peut_etre_annulee %}
+        <form method="post" action="{% url 'commande_annuler' commande.pk %}" onsubmit="return confirm('Annuler cette commande ?');">
+          {% csrf_token %}<button class="btn btn-outline-danger"><i class="bi bi-x-circle"></i> Annuler</button>
+        </form>
+      {% endif %}
+    {% endif %}
+  </div>
+</div>
+
+{% if commande.note %}<div class="alert alert-light border"><i class="bi bi-sticky"></i> {{ commande.note|linebreaksbr }}</div>{% endif %}
+
+<div class="card carte-stat mb-3">
+  <div class="card-header bg-transparent"><h2 class="h6 mb-0">Médicaments commandés</h2></div>
+  <div class="table-responsive">
+    <table class="table align-middle mb-0">
+      <thead class="table-light">
+        <tr><th>Médicament</th><th class="nombre">Quantité</th><th class="nombre">Prix unitaire</th><th class="nombre">Montant</th><th class="nombre">Reçu</th><th class="nombre">Reste</th><th></th></tr>
+      </thead>
+      <tbody>
+        {% for l in lignes %}
+        <tr>
+          <td>{{ l.medicament }}</td>
+          <td class="nombre">{{ l.quantite_commandee }}</td>
+          <td class="nombre">{{ l.prix_achat|floatformat:"-2g" }} Ar</td>
+          <td class="nombre">{{ l.montant|floatformat:"-2g" }} Ar</td>
+          <td class="nombre">{{ l.quantite_recue }}</td>
+          <td class="nombre">{% if l.reste_a_recevoir %}<span class="badge bg-warning text-dark">{{ l.reste_a_recevoir }}</span>{% else %}<span class="badge bg-success">0</span>{% endif %}</td>
+          <td class="text-end">
+            {% if commande.est_modifiable and peut_gerer %}
+              <form method="post" action="{% url 'ligne_supprimer' commande.pk l.pk %}" onsubmit="return confirm('Retirer ce médicament ?');">
+                {% csrf_token %}<button class="btn btn-sm btn-outline-danger" title="Retirer"><i class="bi bi-trash"></i></button>
+              </form>
+            {% endif %}
+          </td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="7" class="text-center text-muted py-4">Aucun médicament dans cette commande.</td></tr>
+        {% endfor %}
+      </tbody>
+      <tfoot>
+        <tr class="fw-bold"><td colspan="3">Total</td><td class="nombre">{{ total|floatformat:"-2g" }} Ar</td><td colspan="3"></td></tr>
+      </tfoot>
+    </table>
+  </div>
+</div>
+
+{% if form %}
+<div class="card carte-stat mb-3">
+  <div class="card-body">
+    <h2 class="h6">Ajouter un médicament</h2>
+    <form method="post" class="row g-2 align-items-end">
+      {% csrf_token %}
+      {% if form.non_field_errors %}<div class="col-12"><div class="alert alert-danger mb-0">{{ form.non_field_errors }}</div></div>{% endif %}
+      <div class="col-md-5">
+        <label class="form-label" for="{{ form.medicament.id_for_label }}">Médicament</label>{{ form.medicament }}
+        {% for e in form.medicament.errors %}<div class="invalid-feedback d-block">{{ e }}</div>{% endfor %}
+      </div>
+      <div class="col-md-2">
+        <label class="form-label" for="{{ form.quantite_commandee.id_for_label }}">Quantité</label>{{ form.quantite_commandee }}
+        {% for e in form.quantite_commandee.errors %}<div class="invalid-feedback d-block">{{ e }}</div>{% endfor %}
+      </div>
+      <div class="col-md-3">
+        <label class="form-label" for="{{ form.prix_achat.id_for_label }}">Prix d'achat unitaire</label>{{ form.prix_achat }}
+        {% for e in form.prix_achat.errors %}<div class="invalid-feedback d-block">{{ e }}</div>{% endfor %}
+      </div>
+      <div class="col-md-2 d-grid"><button class="btn btn-pharma"><i class="bi bi-plus-lg"></i> Ajouter</button></div>
+    </form>
+  </div>
+</div>
+{% endif %}
+
+<div class="card carte-stat">
+  <div class="card-header bg-transparent"><h2 class="h6 mb-0">Réceptions</h2></div>
+  <ul class="list-group list-group-flush">
+    {% for r in receptions %}
+      <li class="list-group-item d-flex justify-content-between align-items-center">
+        <a href="{% url 'reception_detail' r.pk %}" class="text-decoration-none">{{ r.numero }} — {{ r.date_reception|date:"d/m/Y H:i" }} — {{ r.recu_par }}</a>
+        <span class="fw-semibold">{{ r.total|floatformat:"-2g" }} Ar</span>
+      </li>
+    {% empty %}
+      <li class="list-group-item text-muted">Aucune réception. Le stock n'augmente qu'à la réception effective (RG04).</li>
+    {% endfor %}
+  </ul>
+</div>
+{% endblock %}

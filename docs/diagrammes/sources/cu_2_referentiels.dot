@@ -1,0 +1,33 @@
+digraph CU {
+graph [rankdir=LR, fontname="Helvetica", fontsize=18, labelloc=t, label="Cas d'utilisation 2 — Référentiels (médicaments, fournisseurs, clients)\n ", nodesep=0.3, ranksep=1.4, bgcolor="white", pad=0.4];
+node [fontname="Helvetica", fontsize=12]; edge [color="#475569", arrowhead=none, penwidth=1.1];
+subgraph acteurs { rank=same; node [shape=box, style="rounded,filled", fillcolor="#f1f5f9", color="#334155"];
+PHA [label="«acteur»\nPharmacien responsable"];
+STO [label="«acteur»\nGestionnaire de stock"];
+CAI [label="«acteur»\nCaissier"];
+GES [label="«acteur»\nResponsable de gestion"];
+}
+subgraph cluster_sys { label="Système PharmaGest"; fontsize=14; style="rounded"; color="#16a34a"; penwidth=2; node [shape=ellipse, style=filled, fillcolor="#f0fdf4", color="#15803d"];
+med [label="Gérer les médicaments\n(CRUD + photo)"];
+cat [label="Gérer les catégories"];
+arc [label="Archiver / réactiver\nun médicament"];
+cmed [label="Consulter le catalogue"];
+fou [label="Gérer les fournisseurs"];
+cfou [label="Consulter les fournisseurs\net leur historique"];
+cli [label="Gérer les clients"];
+ccli [label="Consulter les clients\net leur historique"];
+}
+PHA -> med;
+PHA -> cat;
+PHA -> arc;
+PHA -> fou;
+PHA -> cli;
+STO -> fou;
+STO -> cmed;
+CAI -> cli;
+CAI -> cmed;
+GES -> cmed;
+GES -> cfou;
+GES -> ccli;
+med -> cat [style=dashed, arrowhead=vee, color="#0f766e", fontcolor="#0f766e", fontsize=10, label="«extend»\n(nouvelle catégorie)", constraint=false];
+}

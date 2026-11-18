@@ -1,0 +1,34 @@
+digraph CU {
+graph [rankdir=LR, fontname="Helvetica", fontsize=18, labelloc=t, label="Cas d'utilisation 4 — Ventes et pilotage\n ", nodesep=0.3, ranksep=1.4, bgcolor="white", pad=0.4];
+node [fontname="Helvetica", fontsize=12]; edge [color="#475569", arrowhead=none, penwidth=1.1];
+subgraph acteurs { rank=same; node [shape=box, style="rounded,filled", fillcolor="#f1f5f9", color="#334155"];
+CAI [label="«acteur»\nCaissier"];
+PHA [label="«acteur»\nPharmacien responsable"];
+GES [label="«acteur»\nResponsable de gestion"];
+}
+subgraph cluster_sys { label="Système PharmaGest"; fontsize=14; style="rounded"; color="#16a34a"; penwidth=2; node [shape=ellipse, style=filled, fillcolor="#f0fdf4", color="#15803d"];
+ven [label="Vendre en caisse\n(recherche ou scan)"];
+fefo [label="Choisir les lots\n(FEFO ou manuel)"];
+pay [label="Encaisser\n(espèces, mobile money…)"];
+rcu [label="Imprimer reçu / facture"];
+ver [label="Vérifier un paiement\nmobile money"];
+ret [label="Enregistrer un retour"];
+ann [label="Annuler une vente"];
+hst [label="Consulter l'historique\ndes ventes"];
+rap [label="Consulter les rapports\net télécharger les PDF"];
+}
+CAI -> ven;
+CAI -> ver;
+CAI -> ret;
+CAI -> hst;
+PHA -> ven;
+PHA -> ver;
+PHA -> ret;
+PHA -> ann;
+PHA -> rap;
+GES -> hst;
+GES -> rap;
+ven -> fefo [style=dashed, arrowhead=vee, color="#0f766e", fontcolor="#0f766e", fontsize=10, label="«include»", constraint=false];
+ven -> pay [style=dashed, arrowhead=vee, color="#0f766e", fontcolor="#0f766e", fontsize=10, label="«include»", constraint=false];
+rcu -> ven [style=dashed, arrowhead=vee, color="#0f766e", fontcolor="#0f766e", fontsize=10, label="«extend»", constraint=false];
+}
